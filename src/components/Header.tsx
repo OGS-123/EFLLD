@@ -11,6 +11,7 @@ interface HeaderProps {
   userAddress: string;
   isWalletConnected: boolean;
   onOpenWalletModal: () => void;
+  positionsCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
   userAddress,
   isWalletConnected,
   onOpenWalletModal,
+  positionsCount = 0,
 }) => {
   const [showChainMenu, setShowChainMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -31,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
   const navItems = [
     { id: 'leverage', label: 'Leverage Studio' },
     { id: 'deleverage', label: 'Deleverage & Exit' },
+    { id: 'positions', label: positionsCount > 0 ? `Positions (${positionsCount})` : 'My Positions' },
     { id: 'visualizer', label: 'Bundle Visualizer' },
     { id: 'code', label: 'SDK & Weiroll' },
     { id: 'risk', label: 'Risk Engine' },

@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { DeleveragePlan, FlashloanAdapterType, LendingMarket } from '../types/enso';
 import { FLASHLOAN_PROVIDERS, LENDING_MARKETS } from '../data/tokensAndMarkets';
-import { ArrowDownLeft, Shield, AlertCircle, Play, CheckCircle2, RotateCcw } from 'lucide-react';
+import { ArrowDownLeft, Shield, AlertCircle, Play, CheckCircle2, RotateCcw, Zap } from 'lucide-react';
 
 interface DeleverageStudioProps {
   plan: DeleveragePlan;
   setDeleverageParams: (updater: (prev: DeleveragePlan) => DeleveragePlan) => void;
   onSimulateDeleverage: () => void;
   onOpenVisualizer: () => void;
+  onExecuteDeleverageDirect: () => void;
+  isExecutingDirect: boolean;
 }
 
 export const DeleverageStudio: React.FC<DeleverageStudioProps> = ({
@@ -15,6 +17,8 @@ export const DeleverageStudio: React.FC<DeleverageStudioProps> = ({
   setDeleverageParams,
   onSimulateDeleverage,
   onOpenVisualizer,
+  onExecuteDeleverageDirect,
+  isExecutingDirect,
 }) => {
   // Preset positions for easy testing
   const samplePositions = [
@@ -397,14 +401,23 @@ export const DeleverageStudio: React.FC<DeleverageStudioProps> = ({
               </div>
             </div>
 
-            {/* Action */}
+            {/* Action Buttons */}
             <div className="space-y-2 pt-2">
               <button
-                onClick={onSimulateDeleverage}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-lg transition-colors"
+                onClick={onExecuteDeleverageDirect}
+                disabled={isExecutingDirect}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-xl transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-50"
               >
-                <Play className="w-4 h-4 fill-current" />
-                <span>Simulate Atomic Deleverage</span>
+                <Zap className="w-4 h-4 fill-current" />
+                <span>{isExecutingDirect ? 'Submitting Deleverage...' : 'Direct Execute Deleverage (On-Chain)'}</span>
+              </button>
+
+              <button
+                onClick={onSimulateDeleverage}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 rounded-lg transition-colors cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+                <span>Simulate Deleverage Fork</span>
               </button>
 
               <button

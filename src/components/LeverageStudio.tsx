@@ -9,7 +9,7 @@ import {
 } from '../types/enso';
 import { FLASHLOAN_PROVIDERS, LENDING_MARKETS, TOKENS } from '../data/tokensAndMarkets';
 import { OFFICIAL_PRESETS } from '../data/officialPresets';
-import { ArrowRight, Sliders, ShieldCheck, AlertTriangle, Play, Code2, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Sliders, ShieldCheck, AlertTriangle, Play, Code2, Sparkles, CheckCircle2, Zap } from 'lucide-react';
 
 interface LeverageStudioProps {
   plan: LeveragePlan;
@@ -18,6 +18,8 @@ interface LeverageStudioProps {
   onOpenVisualizer: () => void;
   onOpenCode: () => void;
   onSimulate: () => void;
+  onExecuteDirect: () => void;
+  isExecutingDirect: boolean;
 }
 
 export const LeverageStudio: React.FC<LeverageStudioProps> = ({
@@ -27,6 +29,8 @@ export const LeverageStudio: React.FC<LeverageStudioProps> = ({
   onOpenVisualizer,
   onOpenCode,
   onSimulate,
+  onExecuteDirect,
+  isExecutingDirect,
 }) => {
   const currentPreset = OFFICIAL_PRESETS.find(
     (p) =>
@@ -462,11 +466,20 @@ export const LeverageStudio: React.FC<LeverageStudioProps> = ({
             {/* Action Buttons */}
             <div className="space-y-2 pt-2">
               <button
-                onClick={onSimulate}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-lg transition-colors"
+                onClick={onExecuteDirect}
+                disabled={isExecutingDirect}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-xl transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-50"
               >
-                <Play className="w-4 h-4 fill-current" />
-                <span>Simulate Atomic Loop Bundle</span>
+                <Zap className="w-4 h-4 fill-current" />
+                <span>{isExecutingDirect ? 'Submitting On-Chain...' : 'Direct Execute (On-Chain)'}</span>
+              </button>
+
+              <button
+                onClick={onSimulate}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 rounded-lg transition-colors cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+                <span>Simulate Fork Execution</span>
               </button>
 
               <div className="grid grid-cols-2 gap-2">

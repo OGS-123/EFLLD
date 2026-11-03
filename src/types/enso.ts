@@ -168,3 +168,28 @@ export interface SimulationResult {
     ltv: number;
   };
 }
+
+export type TxStage =
+  | 'idle'
+  | 'checking_allowance'
+  | 'approving'
+  | 'awaiting_signature'
+  | 'broadcasting'
+  | 'confirmed'
+  | 'failed';
+
+export interface UserPosition {
+  id: string;
+  market: LendingMarket;
+  collateralAmount: number;
+  collateralUsd: number;
+  debtAmount: number;
+  debtUsd: number;
+  healthFactor: number;
+  liquidationPrice: number;
+  netApy: number;
+  leverage: number;
+  openedAt: string;
+  txHash: string;
+  chainId: ChainId;
+}

@@ -1,10 +1,24 @@
 import React, { useState, useMemo } from 'react';
-import { ChainId, DeleveragePlan, ExecutionStep, FlashloanAdapterType, FlashloanProvider, LendingMarket, LeveragePlan, OfficialPreset, SimulationResult, Token } from './types/enso';
+import {
+  ChainId,
+  DeleveragePlan,
+  ExecutionStep,
+  FlashloanAdapterType,
+  FlashloanProvider,
+  LendingMarket,
+  LeveragePlan,
+  OfficialPreset,
+  SimulationResult,
+  Token,
+  TxStage,
+  UserPosition,
+} from './types/enso';
 import { FLASHLOAN_PROVIDERS, LENDING_MARKETS, SUPPORTED_CHAINS, TOKENS } from './data/tokensAndMarkets';
 import { OFFICIAL_PRESETS } from './data/officialPresets';
 import { calculateLeveragePlan, calculateDeleveragePlan } from './utils/leverageMath';
 import { buildLeverageExecutionSteps, buildDeleverageExecutionSteps } from './utils/ensoBundleBuilder';
 import { simulateBundleExecution } from './services/ensoSimulation';
+import { executeDirectLeverageLoop, executeDirectDeleverage } from './services/ensoExecution';
 
 import { Header } from './components/Header';
 import { LeverageStudio } from './components/LeverageStudio';
@@ -16,6 +30,8 @@ import { ShortcutsWidget } from './components/ShortcutsWidget';
 import { MarketDirectory } from './components/MarketDirectory';
 import { SimulationModal } from './components/SimulationModal';
 import { WalletModal } from './components/WalletModal';
+import { DirectExecutionModal } from './components/DirectExecutionModal';
+import { ActivePositions } from './components/ActivePositions';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('leverage');
@@ -24,6 +40,26 @@ export default function App() {
   const [isWalletConnected, setIsWalletConnected] = useState<boolean>(true);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Active positions portfolio state
+  const polygonAaveMarket = LENDING_MARKETS.find((m) => m.id === 'aave-polygon-weth-usdc') || LENDING_MARKETS[0];
+  const [userPositions, setUserPositions] = useState<UserPosition[]>([
+    {
+      id: 'pos-polygon-1',
+      market: polygonAaveMarket,
+      collateralAmount: 2.5,
+      collateralUsd: 6625,
+      debtAmount: 4200,
+      debtUsd: 4200,
+      healthFactor: 1.34,
+      liquidationPrice: 1976.47,
+      netApy: 8.45,
+      leverage: 2.8,
+      openedAt: '02:15 PM',
+      txHash: '0x8b323495f7e4148be5643a4ea4a8221eef163e4bccfdedc2a6f4696baacbc86cc',
+      chainId: 137,
+    },
+  ]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -83,7 +119,6 @@ export default function App() {
     const targetChain = SUPPORTED_CHAINS.find((c) => c.id === chainId);
     showToast(`Switched network to ${targetChain?.name || 'Chain ' + chainId}`);
 
-    // If current market is from a different chain, automatically update to a native market on that chain
     const marketOnNewChain = LENDING_MARKETS.find((m) => m.chainId === chainId);
     if (marketOnNewChain) {
       const isPolToken = marketOnNewChain.collateralToken.symbol === 'POL';
@@ -134,10 +169,24 @@ export default function App() {
     setActiveSteps(rawSteps);
   }, [rawSteps]);
 
-  // Simulation state
+  // Simulation modal state
   const [isSimulationModalOpen, setIsSimulationModalOpen] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
+
+  // Direct on-chain execution modal state
+  const [isDirectModalOpen, setIsDirectModalOpen] = useState(false);
+  const [isExecutingDirect, setIsExecutingDirect] = useState(false);
+  const [directTxStage, setDirectTxStage] = useState<TxStage>('idle');
+  const [directStatusMessage, setDirectStatusMessage] = useState<string>('');
+  const [directTxHash, setDirectTxHash] = useState<string>('');
+  const [directBlockNumber, setDirectBlockNumber] = useState<number>(0);
+  const [directActionTitle, setDirectActionTitle] = useState<string>('Executing Live Flashloan Bundle');
+  const [directSummaryDetails, setDirectSummaryDetails] = useState({
+    collateral: '',
+    debt: '',
+    healthFactor: '',
+  });
 
   const handleApplyPreset = (preset: OfficialPreset) => {
     const market = LENDING_MARKETS.find(
@@ -168,7 +217,6 @@ export default function App() {
     setIsSimulating(true);
     setSimulationResult(null);
 
-    // Reset step statuses to pending/idle
     setActiveSteps((prev) => prev.map((s) => ({ ...s, status: 'idle' })));
 
     try {
@@ -192,6 +240,107 @@ export default function App() {
     }
   };
 
+  // Direct Live On-Chain Leverage Loop
+  const handleDirectLeverageExecute = async () => {
+    if (!isWalletConnected) {
+      setIsWalletModalOpen(true);
+      showToast('Please connect your wallet first');
+      return;
+    }
+
+    setIsDirectModalOpen(true);
+    setIsExecutingDirect(true);
+    setDirectActionTitle(`Opening ${leveragePlan.leverage.toFixed(1)}x ${leveragePlan.market.name}`);
+    setDirectSummaryDetails({
+      collateral: `${leveragePlan.totalCollateralAmount.toFixed(4)} ${leveragePlan.collateralToken.symbol}`,
+      debt: `${leveragePlan.totalDebtAmount.toFixed(2)} ${leveragePlan.debtToken.symbol}`,
+      healthFactor: leveragePlan.healthFactor.toFixed(2),
+    });
+
+    try {
+      const { txHash, blockNumber, newPosition } = await executeDirectLeverageLoop(
+        leveragePlan,
+        userAddress,
+        (stage, msg) => {
+          setDirectTxStage(stage);
+          setDirectStatusMessage(msg);
+        }
+      );
+
+      setDirectTxHash(txHash);
+      setDirectBlockNumber(blockNumber);
+      setUserPositions((prev) => [newPosition, ...prev]);
+      showToast(`Position opened on-chain in Block #${blockNumber}!`);
+    } catch (err: any) {
+      console.error('Direct execution failed:', err);
+      setDirectTxStage('failed');
+      setDirectStatusMessage(err?.message || 'Transaction failed or was rejected');
+      showToast('Transaction failed');
+    } finally {
+      setIsExecutingDirect(false);
+    }
+  };
+
+  // Direct Live On-Chain Deleverage Unwind
+  const handleDirectDeleverageExecute = async () => {
+    if (!isWalletConnected) {
+      setIsWalletModalOpen(true);
+      showToast('Please connect your wallet first');
+      return;
+    }
+
+    setIsDirectModalOpen(true);
+    setIsExecutingDirect(true);
+    setDirectActionTitle(`Unwinding ${deleveragePlan.market.name} Position`);
+    setDirectSummaryDetails({
+      collateral: `+${deleveragePlan.netPayoutCollateral.toFixed(4)} ${deleveragePlan.collateralToken.symbol} (Payout)`,
+      debt: `-${deleveragePlan.debtToRepay.toFixed(2)} ${deleveragePlan.debtToken.symbol} (Repaid)`,
+      healthFactor: deleveragePlan.unwindType === 'full' ? 'Closed' : deleveragePlan.healthFactorAfter.toFixed(2),
+    });
+
+    try {
+      const { txHash, blockNumber } = await executeDirectDeleverage(
+        deleveragePlan,
+        userAddress,
+        (stage, msg) => {
+          setDirectTxStage(stage);
+          setDirectStatusMessage(msg);
+        }
+      );
+
+      setDirectTxHash(txHash);
+      setDirectBlockNumber(blockNumber);
+
+      // If full unwind, remove matching positions
+      if (deleveragePlan.unwindType === 'full') {
+        setUserPositions((prev) => prev.filter((p) => p.market.id !== deleveragePlan.market.id));
+      }
+
+      showToast(`Deleverage confirmed on-chain in Block #${blockNumber}!`);
+    } catch (err: any) {
+      console.error('Direct deleverage failed:', err);
+      setDirectTxStage('failed');
+      setDirectStatusMessage(err?.message || 'Deleverage transaction failed');
+      showToast('Deleverage failed');
+    } finally {
+      setIsExecutingDirect(false);
+    }
+  };
+
+  const handleSelectPositionForDeleverage = (pos: UserPosition) => {
+    setSelectedChainId(pos.chainId);
+    setDeleveragePlanState((prev) => ({
+      ...prev,
+      market: pos.market,
+      collateralToken: pos.market.collateralToken,
+      debtToken: pos.market.debtToken,
+      currentCollateralAmount: pos.collateralAmount,
+      currentDebtAmount: pos.debtAmount,
+    }));
+    setActiveTab('deleverage');
+    showToast(`Loaded ${pos.market.name} position into Deleverage Studio`);
+  };
+
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans">
       {/* 3-Zone Top Bar Contract */}
@@ -203,6 +352,7 @@ export default function App() {
         userAddress={userAddress}
         isWalletConnected={isWalletConnected}
         onOpenWalletModal={() => setIsWalletModalOpen(true)}
+        positionsCount={userPositions.length}
       />
 
       {/* Main Content Viewport */}
@@ -230,6 +380,8 @@ export default function App() {
             onOpenVisualizer={() => setActiveTab('visualizer')}
             onOpenCode={() => setActiveTab('code')}
             onSimulate={() => handleRunSimulation('leverage')}
+            onExecuteDirect={handleDirectLeverageExecute}
+            isExecutingDirect={isExecutingDirect}
           />
         )}
 
@@ -255,6 +407,17 @@ export default function App() {
             }
             onSimulateDeleverage={() => handleRunSimulation('deleverage')}
             onOpenVisualizer={() => setActiveTab('visualizer')}
+            onExecuteDeleverageDirect={handleDirectDeleverageExecute}
+            isExecutingDirect={isExecutingDirect}
+          />
+        )}
+
+        {activeTab === 'positions' && (
+          <ActivePositions
+            positions={userPositions}
+            onSelectPositionForDeleverage={handleSelectPositionForDeleverage}
+            onNavigateToRisk={() => setActiveTab('risk')}
+            onNavigateToLeverage={() => setActiveTab('leverage')}
           />
         )}
 
@@ -280,15 +443,15 @@ export default function App() {
         {activeTab === 'widget' && (
           <ShortcutsWidget
             plan={leveragePlan}
-            onExecute={() => handleRunSimulation('leverage')}
-            isExecuting={isSimulating}
+            onExecute={handleDirectLeverageExecute}
+            isExecuting={isExecutingDirect}
           />
         )}
 
         {activeTab === 'directory' && <MarketDirectory />}
       </main>
 
-      {/* Interactive Simulation Modal */}
+      {/* Simulation Modal (Fork Test) */}
       <SimulationModal
         isOpen={isSimulationModalOpen}
         onClose={() => setIsSimulationModalOpen(false)}
@@ -296,6 +459,20 @@ export default function App() {
         steps={activeSteps}
         simulationResult={simulationResult}
         mode={isLeverageMode ? 'leverage' : 'deleverage'}
+      />
+
+      {/* Direct On-Chain Execution Modal */}
+      <DirectExecutionModal
+        isOpen={isDirectModalOpen}
+        onClose={() => setIsDirectModalOpen(false)}
+        txStage={directTxStage}
+        statusMessage={directStatusMessage}
+        txHash={directTxHash}
+        blockNumber={directBlockNumber}
+        chainId={selectedChainId}
+        actionTitle={directActionTitle}
+        summaryDetails={directSummaryDetails}
+        onViewPositions={() => setActiveTab('positions')}
       />
 
       {/* Web3 / Account Drawer Modal */}

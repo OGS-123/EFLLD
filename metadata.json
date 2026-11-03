@@ -1,0 +1,6 @@
+{
+  "name": "EnsoFlash Leverage & Deleverage Terminal",
+  "description": "Production-grade DeFi leverage and deleverage terminal powered by Enso Shortcuts, flashloan adapters, and atomic bundle execution.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

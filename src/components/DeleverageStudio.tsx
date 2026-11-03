@@ -323,6 +323,26 @@ export const DeleverageStudio: React.FC<DeleverageStudioProps> = ({
               ))}
             </select>
           </div>
+
+          {/* Action Buttons in Left Panel */}
+          <div className="pt-3 border-t border-neutral-800 space-y-2">
+            <button
+              onClick={onSimulateDeleverage}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white rounded-lg transition-colors cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+              <span>Simulate Atomic Deleverage</span>
+            </button>
+
+            <button
+              onClick={onExecuteDeleverageDirect}
+              disabled={isExecutingDirect}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-xl transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-50"
+            >
+              <Zap className="w-4 h-4 fill-current" />
+              <span>{isExecutingDirect ? 'Submitting Deleverage...' : 'Direct Execute Deleverage (On-Chain)'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Right Column: Execution Output & Net Payout (5 Cols) */}
@@ -404,20 +424,20 @@ export const DeleverageStudio: React.FC<DeleverageStudioProps> = ({
             {/* Action Buttons */}
             <div className="space-y-2 pt-2">
               <button
+                onClick={onSimulateDeleverage}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white rounded-lg transition-colors cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+                <span>Simulate Atomic Deleverage</span>
+              </button>
+
+              <button
                 onClick={onExecuteDeleverageDirect}
                 disabled={isExecutingDirect}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-xl transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-50"
               >
                 <Zap className="w-4 h-4 fill-current" />
                 <span>{isExecutingDirect ? 'Submitting Deleverage...' : 'Direct Execute Deleverage (On-Chain)'}</span>
-              </button>
-
-              <button
-                onClick={onSimulateDeleverage}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 rounded-lg transition-colors cursor-pointer"
-              >
-                <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
-                <span>Simulate Deleverage Fork</span>
               </button>
 
               <button

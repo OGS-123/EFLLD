@@ -340,6 +340,26 @@ export const LeverageStudio: React.FC<LeverageStudioProps> = ({
               Est. Gas: ~{plan.estimatedGasUnits.toLocaleString()} units (~${plan.estimatedGasCostUsd.toFixed(2)})
             </div>
           </div>
+
+          {/* Action Buttons in Left Panel */}
+          <div className="pt-3 border-t border-neutral-800 space-y-2">
+            <button
+              onClick={onSimulate}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white rounded-lg transition-colors cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+              <span>Simulate Atomic Loop Bundle</span>
+            </button>
+
+            <button
+              onClick={onExecuteDirect}
+              disabled={isExecutingDirect}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-xl transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-50"
+            >
+              <Zap className="w-4 h-4 fill-current" />
+              <span>{isExecutingDirect ? 'Submitting On-Chain...' : 'Direct Execute (On-Chain)'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Right Column: Real-time Position & Risk Monitor (5 Cols) */}
@@ -466,20 +486,20 @@ export const LeverageStudio: React.FC<LeverageStudioProps> = ({
             {/* Action Buttons */}
             <div className="space-y-2 pt-2">
               <button
+                onClick={onSimulate}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white rounded-lg transition-colors cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+                <span>Simulate Atomic Loop Bundle</span>
+              </button>
+
+              <button
                 onClick={onExecuteDirect}
                 disabled={isExecutingDirect}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-xl transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-50"
               >
                 <Zap className="w-4 h-4 fill-current" />
                 <span>{isExecutingDirect ? 'Submitting On-Chain...' : 'Direct Execute (On-Chain)'}</span>
-              </button>
-
-              <button
-                onClick={onSimulate}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 rounded-lg transition-colors cursor-pointer"
-              >
-                <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
-                <span>Simulate Fork Execution</span>
               </button>
 
               <div className="grid grid-cols-2 gap-2">

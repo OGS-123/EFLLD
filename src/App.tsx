@@ -428,6 +428,8 @@ export default function App() {
             isSimulating={isSimulating}
             simulationResult={simulationResult}
             onSimulate={() => handleRunSimulation(isLeverageMode ? 'leverage' : 'deleverage')}
+            onExecuteDirect={isLeverageMode ? handleDirectLeverageExecute : handleDirectDeleverageExecute}
+            isExecutingDirect={isExecutingDirect}
           />
         )}
 
@@ -459,6 +461,7 @@ export default function App() {
         steps={activeSteps}
         simulationResult={simulationResult}
         mode={isLeverageMode ? 'leverage' : 'deleverage'}
+        onExecuteDirect={isLeverageMode ? handleDirectLeverageExecute : handleDirectDeleverageExecute}
       />
 
       {/* Direct On-Chain Execution Modal */}

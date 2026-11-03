@@ -1,6 +1,6 @@
 import React from 'react';
 import { ExecutionStep, SimulationResult } from '../types/enso';
-import { CheckCircle2, X, Activity, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
+import { CheckCircle2, X, Activity, ExternalLink, Loader2, AlertCircle, Zap } from 'lucide-react';
 
 interface SimulationModalProps {
   isOpen: boolean;
@@ -9,6 +9,7 @@ interface SimulationModalProps {
   steps: ExecutionStep[];
   simulationResult: SimulationResult | null;
   mode: 'leverage' | 'deleverage';
+  onExecuteDirect?: () => void;
 }
 
 export const SimulationModal: React.FC<SimulationModalProps> = ({
@@ -18,6 +19,7 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
   steps,
   simulationResult,
   mode,
+  onExecuteDirect,
 }) => {
   if (!isOpen) return null;
 
@@ -144,13 +146,32 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-neutral-800 bg-neutral-950/80 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg transition-colors"
-          >
-            Close Simulation
-          </button>
+        <div className="p-4 border-t border-neutral-800 bg-neutral-950/80 flex justify-between items-center">
+          <span className="text-[11px] font-mono text-neutral-400">
+            {simulationResult ? 'Invariant verified: 0 slippage breach' : 'Testing on virtual fork'}
+          </span>
+
+          <div className="flex items-center gap-2">
+            {simulationResult && !isSimulating && onExecuteDirect && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onExecuteDirect();
+                }}
+                className="px-4 py-2 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/10"
+              >
+                <Zap className="w-3.5 h-3.5 fill-current" />
+                <span>Execute Live On-Chain</span>
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg transition-colors cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ExecutionStep, LeveragePlan, DeleveragePlan, SimulationResult } from '../types/enso';
 import { generateWeirollCommands } from '../utils/ensoBundleBuilder';
-import { Play, CheckCircle2, ChevronRight, ChevronDown, Terminal, Layers, ShieldCheck, Activity, Copy, Check } from 'lucide-react';
+import { Play, CheckCircle2, ChevronRight, ChevronDown, Terminal, Layers, ShieldCheck, Activity, Copy, Check, Zap } from 'lucide-react';
 
 interface BundleVisualizerProps {
   steps: ExecutionStep[];
@@ -9,6 +9,8 @@ interface BundleVisualizerProps {
   isSimulating: boolean;
   simulationResult: SimulationResult | null;
   onSimulate: () => void;
+  onExecuteDirect?: () => void;
+  isExecutingDirect?: boolean;
 }
 
 export const BundleVisualizer: React.FC<BundleVisualizerProps> = ({
@@ -17,6 +19,8 @@ export const BundleVisualizer: React.FC<BundleVisualizerProps> = ({
   isSimulating,
   simulationResult,
   onSimulate,
+  onExecuteDirect,
+  isExecutingDirect = false,
 }) => {
   const [expandedStepId, setExpandedStepId] = useState<string | null>(steps[1]?.id || null);
   const [viewMode, setViewMode] = useState<'tree' | 'weiroll' | 'logs'>('tree');
@@ -264,18 +268,27 @@ export const BundleVisualizer: React.FC<BundleVisualizerProps> = ({
               Run this bundle against a virtual fork of Ethereum Mainnet to verify flashloan callback invariants, slippage protection, and health factor guarantees.
             </p>
 
-            <button
-              onClick={onSimulate}
-              disabled={isSimulating}
-              className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg transition-colors ${
-                isSimulating
-                  ? 'bg-neutral-800 text-neutral-400 cursor-not-allowed'
-                  : 'bg-emerald-500 hover:bg-emerald-400 text-neutral-950'
-              }`}
-            >
-              <Play className="w-4 h-4 fill-current" />
-              <span>{isSimulating ? 'Executing Simulation...' : 'Run Bundle Simulation'}</span>
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={onSimulate}
+                disabled={isSimulating}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white rounded-lg transition-colors cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+                <span>{isSimulating ? 'Executing Simulation...' : 'Run Bundle Simulation'}</span>
+              </button>
+
+              {onExecuteDirect && (
+                <button
+                  onClick={onExecuteDirect}
+                  disabled={isExecutingDirect}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-xl transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-50"
+                >
+                  <Zap className="w-4 h-4 fill-current" />
+                  <span>{isExecutingDirect ? 'Submitting On-Chain...' : 'Execute Bundle On-Chain'}</span>
+                </button>
+              )}
+            </div>
 
             {/* Simulation Status Card */}
             {simulationResult && (
